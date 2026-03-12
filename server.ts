@@ -109,7 +109,14 @@ async function startServer() {
       return res.status(500).json({ error: 'Google Client ID not configured' });
     }
     
-    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+    let protocol = req.get('x-forwarded-proto') || req.protocol;
+    const host = req.get('host');
+    if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+      protocol = 'https';
+    }
+    const baseUrl = process.env.APP_URL || `${protocol}://${host}`;
+    const redirectUri = `${baseUrl.replace(/\/$/, '')}/api/auth/google/callback`;
+    
     const url = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'],
@@ -120,7 +127,13 @@ async function startServer() {
 
   app.get('/api/auth/google/callback', async (req, res) => {
     const { code } = req.query;
-    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+    let protocol = req.get('x-forwarded-proto') || req.protocol;
+    const host = req.get('host');
+    if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+      protocol = 'https';
+    }
+    const baseUrl = process.env.APP_URL || `${protocol}://${host}`;
+    const redirectUri = `${baseUrl.replace(/\/$/, '')}/api/auth/google/callback`;
 
     try {
       const { tokens } = await oauth2Client.getToken({
@@ -268,6 +281,10 @@ async function startServer() {
     { name: 'audio', maxCount: 1 },
     { name: 'cover', maxCount: 1 }
   ]), (req: any, res: any) => {
+    const token = req.cookies.auth_token;
+    const user = getUserFromToken(token);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
     const files = req.files as { [fieldname: string]: any[] };
     const { title, artist, genre } = req.body;
 

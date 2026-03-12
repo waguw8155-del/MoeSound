@@ -23,6 +23,12 @@ export default function App() {
   const [shopItems, setShopItems] = useState<any[]>([]);
   const [isBlogUploadOpen, setIsBlogUploadOpen] = useState(false);
   const [isShopUploadOpen, setIsShopUploadOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([
+    { id: 1, title: '新着メッセージ', content: 'ひなたさんからメッセージが届いています', time: '5分前', read: false },
+    { id: 2, title: '新曲リリース', content: 'お気に入りのアーティストが新曲をアップロードしました', time: '1時間前', read: false },
+    { id: 3, title: 'ショップ更新', content: 'PANPAKAPAN公式アクリルスタンドが入荷しました', time: '3時間前', read: true },
+  ]);
 
   const fetchMessages = async () => {
     if (!user) return;
@@ -210,7 +216,7 @@ export default function App() {
                     <Play size={20} fill="black" /> 今すぐ聴く
                   </button>
                   <button 
-                    onClick={() => setIsUploadOpen(true)}
+                    onClick={() => user ? setIsUploadOpen(true) : handleLogin()}
                     className="glass-panel px-8 py-3 rounded-2xl font-black hover:bg-white/10 transition-colors"
                   >
                     作品を投稿する
@@ -715,7 +721,7 @@ export default function App() {
   return (
     <div className="flex min-h-screen bg-black text-white">
       <Sidebar 
-        onUploadClick={() => setIsUploadOpen(true)} 
+        onUploadClick={() => user ? setIsUploadOpen(true) : handleLogin()} 
         currentView={currentView}
         onViewChange={setCurrentView}
       />
@@ -731,10 +737,62 @@ export default function App() {
               className="w-full bg-zinc-900 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-brand transition-all"
             />
           </div>
-          <div className="flex items-center gap-4">
-            <button className="p-2 text-zinc-400 hover:text-white transition-colors">
+          <div className="flex items-center gap-4 relative">
+            <button 
+              onClick={() => user ? setIsNotificationsOpen(!isNotificationsOpen) : handleLogin()}
+              className={cn(
+                "p-2 rounded-full transition-all relative",
+                isNotificationsOpen ? "bg-white/10 text-white" : "text-zinc-400 hover:text-white"
+              )}
+            >
               <Bell size={20} />
+              {user && notifications.some(n => !n.read) && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-brand rounded-full border border-black" />
+              )}
             </button>
+
+            {user && isNotificationsOpen && (
+              <div className="absolute top-full right-0 mt-2 w-80 glass-panel rounded-3xl overflow-hidden shadow-2xl z-50 border border-white/10">
+                <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
+                  <h3 className="font-black text-sm">通知</h3>
+                  <button 
+                    onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))}
+                    className="text-[10px] font-bold text-brand hover:underline"
+                  >
+                    すべて既読にする
+                  </button>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map(notification => (
+                      <div 
+                        key={notification.id} 
+                        className={cn(
+                          "p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer",
+                          !notification.read && "bg-brand/5"
+                        )}
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="font-bold text-xs">{notification.title}</p>
+                          <span className="text-[8px] text-zinc-500 font-bold">{notification.time}</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-400 leading-relaxed">{notification.content}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-zinc-500 text-xs font-bold">
+                      通知はありません
+                    </div>
+                  )}
+                </div>
+                <div className="p-3 text-center bg-white/5">
+                  <button className="text-[10px] font-black text-zinc-500 hover:text-white transition-colors">
+                    すべての通知を見る
+                  </button>
+                </div>
+              </div>
+            )}
+
             {user ? (
               <button 
                 onClick={() => setCurrentView('マイページ')}
